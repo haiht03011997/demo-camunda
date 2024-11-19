@@ -2,6 +2,6 @@
 {
     public class ApproveRequest
     {
-        public string email { get; set; }
+        public bool Approved { get; set; }
     }
 }

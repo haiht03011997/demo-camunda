@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using Zeebe.Client;
+﻿using DemoCamunda.Interfaces;
+using DemoCamunda.Request;
+using Microsoft.AspNetCore.Mvc;
 
 namespace DemoCamunda.Controllers
 {
@@ -8,89 +8,44 @@ namespace DemoCamunda.Controllers
     [ApiController]
     public class CamundaController : ControllerBase
     {
-        private readonly IZeebeClient _zeebeClient;
+        private readonly ICamundaService _camundaService;
 
-        public CamundaController(IZeebeClient zeebeClient)
+        public CamundaController(ICamundaService camundaService)
         {
-            _zeebeClient = zeebeClient;
+            _camundaService = camundaService;
         }
 
-        // Endpoint to upload and deploy a BPMN file
-        [HttpPost("deploy")]
-        public async Task<IActionResult> DeployBpmnFile()
+        [HttpPost("start-process")]
+        public async Task<IActionResult> StartProcess([FromBody] StartProcessRequest request)
         {
-            try
+            var variables = new
             {
-                var bpmnFilePath = Path.Combine(Directory.GetCurrentDirectory(), "BpmnFiles", "approval-process.bpmn");
-                if (!System.IO.File.Exists(bpmnFilePath))
-                {
-                    return BadRequest("BPMN file not found.");
-                }
-                // Deploy the BPMN file to Zeebe
-                var deployment = await _zeebeClient.NewDeployCommand()
-                    .AddResourceFile(bpmnFilePath) // Add the BPMN file
-                    .Send();
+                recipient = new { value = request.Recipient, type = "String" },
+                subject = new { value = request.Subject, type = "String" },
+                content = new { value = request.Content, type = "String" }
+            };
 
-                // Return the deployment details
-                return Ok(new
-                {
-                    DeploymentKey = deployment.Key,
-                    Processes = deployment.Processes.Select(p => new
-                    {
-                        p.BpmnProcessId,
-                        p.Version,
-                        p.ProcessDefinitionKey
-                    })
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Deployment failed: {ex.Message}");
-            }
+            var result = await _camundaService.StartProcessAsync("email_approval_process", variables);
+            return Ok(result);
         }
 
-        [HttpPost("process/start")]
-        public async Task<IActionResult> StartProcess([FromBody] string approverEmail)
+        [HttpPost("complete-task/{taskId}")]
+        public async Task<IActionResult> CompleteTask(string taskId, [FromBody] ApproveRequest request)
         {
-            var processInstance = await _zeebeClient.NewCreateProcessInstanceCommand()
-                .BpmnProcessId("document-approval-process") // ID của BPMN Process
-                .LatestVersion()
-                .Variables($"{{ \"approverEmail\": \"{approverEmail}\" }}") // Biến đầu vào
-                .Send();
-
-            return Ok(new { Message = "Process started", ProcessInstanceKey = processInstance.ProcessInstanceKey });
+            await _camundaService.CompleteTaskAsync(taskId, request.Approved);
+            return Ok(new { message = "Task completed successfully" });
         }
 
-        // Endpoint để hoàn thành user task sau khi chọn món
-        [HttpPost("process/complete-task")]
-        public async Task<IActionResult> CompleteTask([FromForm] string meal)
+        [HttpPost("email/send-approval")]
+        public IActionResult SendApprovalEmail([FromBody] EmailRequest request)
         {
+            return Ok(new { message = "Approval email sent successfully" });
+        }
 
-            // Worker sẽ tự động nhận và xử lý công việc dựa trên dữ liệu món ăn đã chọn
-            var jobWorker = _zeebeClient.NewWorker()
-                .JobType("decide-dinner")  // Thay thế với JobType trong BPMN của bạn
-                .Handler(async (jobClient, job) =>
-                {
-                    // Gửi biến "meal" đã chọn vào Zeebe
-                    var variables = new Dictionary<string, object>
-                    {
-                        { "meal", meal }
-                    };
-
-                    // Hoàn thành công việc với biến đã chọn
-                    await jobClient.NewCompleteJobCommand(job.Key)
-                        .Variables(JsonConvert.SerializeObject( variables))
-                        .Send();
-
-                    Console.WriteLine($"User selected: {meal}");
-                })
-                .MaxJobsActive(5)
-                .Name("user-task-worker")
-                .PollInterval(TimeSpan.FromSeconds(1))
-                .Timeout(TimeSpan.FromSeconds(10))
-                .Open();
-
-            return Ok($"User selected {meal} for dinner.");
+        [HttpPost("email/send-rejection")]
+        public IActionResult SendRejectionEmail([FromBody] EmailRequest request)
+        {
+            return Ok(new { message = "Rejection email sent successfully" });
         }
     }
 }
