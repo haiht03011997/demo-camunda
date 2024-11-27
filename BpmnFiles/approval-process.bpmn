@@ -1,157 +1,136 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
-             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
-             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
-             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
-             xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
-             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-             xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd"
-             id="Definitions_1"
-             targetNamespace="http://bpmn.io/schema/bpmn">
-
-	<process id="document-approval-process" name="Document Approval Process" isExecutable="true">
-
-		<!-- Start Event -->
-		<startEvent id="startEvent" name="Start">
-			<outgoing>Flow_1</outgoing>
-		</startEvent>
-
-		<!-- Service Task: Gửi email yêu cầu phê duyệt -->
-		<serviceTask id="sendApprovalRequestEmail" name="Send Approval Request Email">
-			<extensionElements>
-				<zeebe:taskDefinition type="send-approval-request-email" />
-				<zeebe:ioMapping>
-					<zeebe:input source="documentName" target="documentName" />
-					<zeebe:input source="approverEmail" target="approverEmail" />
-				</zeebe:ioMapping>
-			</extensionElements>
-			<incoming>Flow_1</incoming>
-			<outgoing>Flow_2</outgoing>
-		</serviceTask>
-
-		<!-- Service Task: Gọi API phê duyệt tài liệu -->
-		<serviceTask id="approveDocument" name="Approve Document">
-			<extensionElements>
-				<zeebe:taskDefinition type="call-api-approve" />
-				<zeebe:ioMapping>
-					<zeebe:input source="documentName" target="documentName" />
-					<zeebe:input source="approverEmail" target="approverEmail" />
-					<zeebe:output source="=approved" target="approved" />
-				</zeebe:ioMapping>
-			</extensionElements>
-			<incoming>Flow_2</incoming>
-			<outgoing>Flow_3</outgoing>
-		</serviceTask>
-
-		<!-- Gateway: Kiểm tra kết quả phê duyệt -->
-		<exclusiveGateway id="approvalCheckGateway" name="Check Approval Result">
-			<incoming>Flow_3</incoming>
-			<outgoing>Flow_approved</outgoing>
-			<outgoing>Flow_rejected</outgoing>
-		</exclusiveGateway>
-
-		<!-- Service Task: Gửi email phê duyệt -->
-		<serviceTask id="sendApprovalEmail" name="Send Approval Email">
-			<extensionElements>
-				<zeebe:taskDefinition type="send-approval-email" />
-				<zeebe:ioMapping>
-					<zeebe:input source="approverEmail" target="approverEmail" />
-					<zeebe:input source="documentName" target="documentName" />
-				</zeebe:ioMapping>
-			</extensionElements>
-			<incoming>Flow_approved</incoming>
-			<outgoing>Flow_4</outgoing>
-		</serviceTask>
-
-		<!-- Service Task: Gửi email từ chối -->
-		<serviceTask id="sendRejectionEmail" name="Send Rejection Email">
-			<extensionElements>
-				<zeebe:taskDefinition type="send-rejection-email" />
-				<zeebe:ioMapping>
-					<zeebe:input source="approverEmail" target="approverEmail" />
-					<zeebe:input source="documentName" target="documentName" />
-				</zeebe:ioMapping>
-			</extensionElements>
-			<incoming>Flow_rejected</incoming>
-			<outgoing>Flow_5</outgoing>
-		</serviceTask>
-
-		<!-- End Event -->
-		<endEvent id="endEvent" name="End">
-			<incoming>Flow_4</incoming>
-			<incoming>Flow_5</incoming>
-		</endEvent>
-
-		<!-- Sequence Flows -->
-		<sequenceFlow id="Flow_1" sourceRef="startEvent" targetRef="sendApprovalRequestEmail" />
-		<sequenceFlow id="Flow_2" sourceRef="sendApprovalRequestEmail" targetRef="approveDocument" />
-		<sequenceFlow id="Flow_3" sourceRef="approveDocument" targetRef="approvalCheckGateway" />
-		<sequenceFlow id="Flow_approved" sourceRef="approvalCheckGateway" targetRef="sendApprovalEmail">
-			<conditionExpression xsi:type="tFormalExpression">=approved</conditionExpression>
-		</sequenceFlow>
-		<sequenceFlow id="Flow_rejected" sourceRef="approvalCheckGateway" targetRef="sendRejectionEmail">
-			<conditionExpression xsi:type="tFormalExpression">=not(approved)</conditionExpression>
-		</sequenceFlow>
-		<sequenceFlow id="Flow_4" sourceRef="sendApprovalEmail" targetRef="endEvent" />
-		<sequenceFlow id="Flow_5" sourceRef="sendRejectionEmail" targetRef="endEvent" />
-
-	</process>
-
-	<!-- Diagrams -->
-	<bpmndi:BPMNDiagram id="BPMNDiagram_1">
-		<bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="document-approval-process">
-			<bpmndi:BPMNShape id="StartEventShape" bpmnElement="startEvent">
-				<omgdc:Bounds x="100" y="100" width="36" height="36"/>
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="SendApprovalRequestEmailShape" bpmnElement="sendApprovalRequestEmail">
-				<omgdc:Bounds x="200" y="100" width="100" height="80"/>
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="ApproveDocumentShape" bpmnElement="approveDocument">
-				<omgdc:Bounds x="350" y="100" width="100" height="80"/>
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="ApprovalCheckGatewayShape" bpmnElement="approvalCheckGateway">
-				<omgdc:Bounds x="500" y="120" width="50" height="50"/>
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="SendApprovalEmailShape" bpmnElement="sendApprovalEmail">
-				<omgdc:Bounds x="600" y="60" width="100" height="80"/>
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="SendRejectionEmailShape" bpmnElement="sendRejectionEmail">
-				<omgdc:Bounds x="600" y="200" width="100" height="80"/>
-			</bpmndi:BPMNShape>
-			<bpmndi:BPMNShape id="EndEventShape" bpmnElement="endEvent">
-				<omgdc:Bounds x="800" y="120" width="36" height="36"/>
-			</bpmndi:BPMNShape>
-
-			<!-- Sequence Flow Shapes -->
-			<bpmndi:BPMNEdge id="Flow_1_Edge" bpmnElement="Flow_1">
-				<omgdi:waypoint x="136" y="118"/>
-				<omgdi:waypoint x="200" y="140"/>
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_2_Edge" bpmnElement="Flow_2">
-				<omgdi:waypoint x="300" y="140"/>
-				<omgdi:waypoint x="350" y="140"/>
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_3_Edge" bpmnElement="Flow_3">
-				<omgdi:waypoint x="450" y="140"/>
-				<omgdi:waypoint x="500" y="145"/>
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_approved_Edge" bpmnElement="Flow_approved">
-				<omgdi:waypoint x="525" y="120"/>
-				<omgdi:waypoint x="600" y="100"/>
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_rejected_Edge" bpmnElement="Flow_rejected">
-				<omgdi:waypoint x="525" y="170"/>
-				<omgdi:waypoint x="600" y="240"/>
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_4_Edge" bpmnElement="Flow_4">
-				<omgdi:waypoint x="700" y="100"/>
-				<omgdi:waypoint x="800" y="120"/>
-			</bpmndi:BPMNEdge>
-			<bpmndi:BPMNEdge id="Flow_5_Edge" bpmnElement="Flow_5">
-				<omgdi:waypoint x="700" y="240"/>
-				<omgdi:waypoint x="800" y="140"/>
-			</bpmndi:BPMNEdge>
-
-		</bpmndi:BPMNPlane>
-	</bpmndi:BPMNDiagram>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.28.0" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd">
+  <process id="document-approval-process" name="Document Approval Process" isExecutable="true">
+    <startEvent id="startEvent" name="Start">
+      <outgoing>Flow_1</outgoing>
+    </startEvent>
+    <serviceTask id="sendApprovalRequestEmail" name="Send Approval Request Email">
+      <extensionElements>
+        <zeebe:taskDefinition type="send-approval-request-email" />
+        <zeebe:ioMapping>
+          <zeebe:input source="documentName" target="documentName" />
+          <zeebe:input source="approverEmail" target="approverEmail" />
+        </zeebe:ioMapping>
+      </extensionElements>
+      <incoming>Flow_1</incoming>
+      <outgoing>Flow_1t7hi84</outgoing>
+    </serviceTask>
+    <exclusiveGateway id="approvalCheckGateway" name="Check Approval Result">
+      <incoming>Flow_18v9nux</incoming>
+      <outgoing>Flow_approved</outgoing>
+      <outgoing>Flow_rejected</outgoing>
+    </exclusiveGateway>
+    <serviceTask id="sendApprovalEmail" name="Send Approval Email">
+      <extensionElements>
+        <zeebe:taskDefinition type="send-approval-email" />
+        <zeebe:ioMapping>
+          <zeebe:input source="approverEmail" target="approverEmail" />
+          <zeebe:input source="documentName" target="documentName" />
+        </zeebe:ioMapping>
+      </extensionElements>
+      <incoming>Flow_approved</incoming>
+      <outgoing>Flow_4</outgoing>
+    </serviceTask>
+    <serviceTask id="sendRejectionEmail" name="Send Rejection Email">
+      <extensionElements>
+        <zeebe:taskDefinition type="send-rejection-email" />
+        <zeebe:ioMapping>
+          <zeebe:input source="approverEmail" target="approverEmail" />
+          <zeebe:input source="documentName" target="documentName" />
+        </zeebe:ioMapping>
+      </extensionElements>
+      <incoming>Flow_rejected</incoming>
+      <outgoing>Flow_5</outgoing>
+    </serviceTask>
+    <endEvent id="endEvent" name="End">
+      <incoming>Flow_4</incoming>
+      <incoming>Flow_5</incoming>
+    </endEvent>
+    <sequenceFlow id="Flow_1" sourceRef="startEvent" targetRef="sendApprovalRequestEmail" />
+    <sequenceFlow id="Flow_approved" sourceRef="approvalCheckGateway" targetRef="sendApprovalEmail">
+      <conditionExpression xsi:type="tFormalExpression">=approved = true</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_rejected" sourceRef="approvalCheckGateway" targetRef="sendRejectionEmail">
+      <conditionExpression xsi:type="tFormalExpression">=approved = false</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_4" sourceRef="sendApprovalEmail" targetRef="endEvent" />
+    <sequenceFlow id="Flow_5" sourceRef="sendRejectionEmail" targetRef="endEvent" />
+    <receiveTask id="Activity_1t43itc" name="Wait for Approval" messageRef="Message_3420cip">
+      <incoming>Flow_1t7hi84</incoming>
+      <outgoing>Flow_18v9nux</outgoing>
+    </receiveTask>
+    <sequenceFlow id="Flow_1t7hi84" sourceRef="sendApprovalRequestEmail" targetRef="Activity_1t43itc" />
+    <sequenceFlow id="Flow_18v9nux" sourceRef="Activity_1t43itc" targetRef="approvalCheckGateway" />
+  </process>
+  <message id="Message_3420cip" name="ApprovalMessage">
+    <extensionElements>
+      <zeebe:subscription correlationKey="=email" />
+    </extensionElements>
+  </message>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="document-approval-process">
+      <bpmndi:BPMNShape id="StartEventShape" bpmnElement="startEvent">
+        <omgdc:Bounds x="160" y="100" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="166" y="136" width="25" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SendApprovalRequestEmailShape" bpmnElement="sendApprovalRequestEmail">
+        <omgdc:Bounds x="260" y="100" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ApprovalCheckGatewayShape" bpmnElement="approvalCheckGateway" isMarkerVisible="true">
+        <omgdc:Bounds x="560" y="120" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="546" y="82.5" width="78" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SendApprovalEmailShape" bpmnElement="sendApprovalEmail">
+        <omgdc:Bounds x="660" y="60" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SendRejectionEmailShape" bpmnElement="sendRejectionEmail">
+        <omgdc:Bounds x="660" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEventShape" bpmnElement="endEvent">
+        <omgdc:Bounds x="860" y="120" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="868" y="156" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1t43itc_di" bpmnElement="Activity_1t43itc">
+        <omgdc:Bounds x="410" y="210" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_Edge" bpmnElement="Flow_1">
+        <omgdi:waypoint x="196" y="118" />
+        <omgdi:waypoint x="260" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_approved_Edge" bpmnElement="Flow_approved">
+        <omgdi:waypoint x="585" y="120" />
+        <omgdi:waypoint x="660" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_rejected_Edge" bpmnElement="Flow_rejected">
+        <omgdi:waypoint x="585" y="170" />
+        <omgdi:waypoint x="660" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_Edge" bpmnElement="Flow_4">
+        <omgdi:waypoint x="760" y="100" />
+        <omgdi:waypoint x="860" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_Edge" bpmnElement="Flow_5">
+        <omgdi:waypoint x="760" y="240" />
+        <omgdi:waypoint x="860" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1t7hi84_di" bpmnElement="Flow_1t7hi84">
+        <omgdi:waypoint x="360" y="140" />
+        <omgdi:waypoint x="390" y="140" />
+        <omgdi:waypoint x="390" y="250" />
+        <omgdi:waypoint x="410" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18v9nux_di" bpmnElement="Flow_18v9nux">
+        <omgdi:waypoint x="473" y="210" />
+        <omgdi:waypoint x="500" y="130" />
+        <omgdi:waypoint x="564" y="141" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
 </definitions>

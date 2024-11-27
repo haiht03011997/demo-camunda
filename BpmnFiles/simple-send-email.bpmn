@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_00jmyxg" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.28.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.6.0">
+  <bpmn:process id="approval-process" name="start" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_0d9kbt0</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Activity_02pdhsq" name="Send email">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="send-email" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0d9kbt0</bpmn:incoming>
+      <bpmn:outgoing>Flow_1fc272t</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_0d9kbt0" sourceRef="StartEvent_1" targetRef="Activity_02pdhsq" />
+    <bpmn:receiveTask id="Activity_0ilsd89" name="Wait for Approval" messageRef="Message_1ll9j05">
+      <bpmn:incoming>Flow_1fc272t</bpmn:incoming>
+      <bpmn:outgoing>Flow_05qn8ex</bpmn:outgoing>
+    </bpmn:receiveTask>
+    <bpmn:sequenceFlow id="Flow_1fc272t" sourceRef="Activity_02pdhsq" targetRef="Activity_0ilsd89" />
+    <bpmn:exclusiveGateway id="Gateway_1gkjcqh">
+      <bpmn:incoming>Flow_05qn8ex</bpmn:incoming>
+      <bpmn:outgoing>Flow_0xm6e1b</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1vy031v</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_05qn8ex" sourceRef="Activity_0ilsd89" targetRef="Gateway_1gkjcqh" />
+    <bpmn:serviceTask id="Activity_1y7whpe" name="Send mail confirm">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="send-approval-email" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0xm6e1b</bpmn:incoming>
+      <bpmn:outgoing>Flow_12tx2oq</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_0xm6e1b" sourceRef="Gateway_1gkjcqh" targetRef="Activity_1y7whpe">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=approved = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="Activity_1o6qn8r" name="send email reject">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="send-rejection-email" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1vy031v</bpmn:incoming>
+      <bpmn:outgoing>Flow_104plz4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_1vy031v" sourceRef="Gateway_1gkjcqh" targetRef="Activity_1o6qn8r">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=approved = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:endEvent id="Event_1asm0vg">
+      <bpmn:incoming>Flow_12tx2oq</bpmn:incoming>
+      <bpmn:incoming>Flow_104plz4</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_12tx2oq" sourceRef="Activity_1y7whpe" targetRef="Event_1asm0vg" />
+    <bpmn:sequenceFlow id="Flow_104plz4" sourceRef="Activity_1o6qn8r" targetRef="Event_1asm0vg" />
+  </bpmn:process>
+  <bpmn:message id="Message_1ll9j05" name="ApprovalMessage">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=email" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="approval-process">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="179" y="79" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_02pdhsq_di" bpmnElement="Activity_02pdhsq">
+        <dc:Bounds x="330" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0ilsd89_di" bpmnElement="Activity_0ilsd89">
+        <dc:Bounds x="510" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1gkjcqh_di" bpmnElement="Gateway_1gkjcqh" isMarkerVisible="true">
+        <dc:Bounds x="695" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1y7whpe_di" bpmnElement="Activity_1y7whpe">
+        <dc:Bounds x="830" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1o6qn8r_di" bpmnElement="Activity_1o6qn8r">
+        <dc:Bounds x="830" y="190" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1asm0vg_di" bpmnElement="Event_1asm0vg">
+        <dc:Bounds x="1042" y="152" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0d9kbt0_di" bpmnElement="Flow_0d9kbt0">
+        <di:waypoint x="215" y="97" />
+        <di:waypoint x="253" y="97" />
+        <di:waypoint x="253" y="120" />
+        <di:waypoint x="330" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1fc272t_di" bpmnElement="Flow_1fc272t">
+        <di:waypoint x="430" y="120" />
+        <di:waypoint x="510" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_05qn8ex_di" bpmnElement="Flow_05qn8ex">
+        <di:waypoint x="610" y="120" />
+        <di:waypoint x="695" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0xm6e1b_di" bpmnElement="Flow_0xm6e1b">
+        <di:waypoint x="745" y="120" />
+        <di:waypoint x="830" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1vy031v_di" bpmnElement="Flow_1vy031v">
+        <di:waypoint x="720" y="145" />
+        <di:waypoint x="720" y="230" />
+        <di:waypoint x="830" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12tx2oq_di" bpmnElement="Flow_12tx2oq">
+        <di:waypoint x="930" y="120" />
+        <di:waypoint x="986" y="120" />
+        <di:waypoint x="986" y="170" />
+        <di:waypoint x="1042" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_104plz4_di" bpmnElement="Flow_104plz4">
+        <di:waypoint x="930" y="230" />
+        <di:waypoint x="976" y="230" />
+        <di:waypoint x="976" y="170" />
+        <di:waypoint x="1042" y="170" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
